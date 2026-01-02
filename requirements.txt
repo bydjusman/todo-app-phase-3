@@ -1,0 +1,6 @@
+# Requirements for Todo Application
+# Only standard library is used, so no external dependencies
+# This file exists for compatibility with Python packaging tools
+
+# Testing
+pytest>=7.0.0
