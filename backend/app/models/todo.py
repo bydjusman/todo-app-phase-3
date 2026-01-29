@@ -1,7 +1,6 @@
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
-from .user import User
 
 if TYPE_CHECKING:
     from .user import User
@@ -17,8 +16,10 @@ class TodoBase(SQLModel):
 
 class Todo(TodoBase, table=True):
     """Todo model for database storage"""
+    __tablename__ = "todos"
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
+    user_id: int = Field(foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
