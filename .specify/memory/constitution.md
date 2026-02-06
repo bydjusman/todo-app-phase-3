@@ -1,73 +1,75 @@
-<!-- SYNC IMPACT REPORT
-Version change: N/A (initial creation) → v1.0.0
-Modified principles: N/A (new principles created)
-Added sections: Core Principles (6), Technology Constraints, Development Workflow, Governance
-Removed sections: N/A
-Templates requiring updates: 
-- .specify/templates/plan-template.md ✅ updated
-- .specify/templates/spec-template.md ✅ updated  
-- .specify/templates/tasks-template.md ✅ updated
-- .specify/commands/*.toml ✅ reviewed
-- README.md ⚠ pending
-Follow-up TODOs: None
+<!--
+Sync Impact Report:
+- Version change: 1.0.0 → 1.1.0
+- Modified principles: Added AI-native design, MCP compliance, Stateless architecture principles
+- Added sections: MCP Tooling Standards, Agent Behavior Rules, Authentication & Security
+- Removed sections: None
+- Templates requiring updates: ✅ plan-template.md, ✅ spec-template.md, ✅ tasks-template.md
+- Follow-up TODOs: None
 -->
-
-# Evolution of Todo Constitution
+# Phase III – AI-Powered Todo Chatbot Constitution
 
 ## Core Principles
 
-### I. Spec-Driven Development (NON-NEGOTIABLE)
-All development must follow the strict sequence: Constitution → Specifications → Plan → Tasks → Implementation. No agent may write code without approved specifications and tasks. Every feature, change, and enhancement must originate from an approved specification document.
+### AI-Native Design
+AI-native design emphasizing agent → tool → database architecture. The system must be designed from the ground up to leverage AI agents that interact with deterministic tools for all operations. No manual coding outside of Claude Code, with strict adherence to agentic AI patterns.
 
-### II. Agent Behavior Rules
-Agents must operate within defined constraints: No manual coding by humans, no feature invention beyond approved specifications, no deviation from approved specifications, and all refinements must occur at the specification level, not during code implementation.
+### Strict Stateless Architecture
+Backend holds NO in-memory state. Each request cycle must: 1) Fetch conversation history from database, 2) Append new user message, 3) Run agent with MCP tools, 4) Persist assistant response. All MCP tools themselves MUST be stateless with no hidden agent memory.
 
-### III. Phase Governance
-Each project phase is strictly scoped by its specification. Features from future phases must never leak into earlier phases. Architecture may evolve only through updated specifications and plans, maintaining clear boundaries between phases.
+### Deterministic Tool Invocation
+All MCP tool call IDs MUST be alphanumeric only (a-z, A-Z, 0-9), be ≤ 9 characters in length, and contain NO hyphens, underscores, or UUIDs. Tool IDs must be deterministic and human-readable (e.g., addtask01, listtask2, updatetsk, complet01, deletetsk). UUID-based or auto-generated tool call IDs are STRICTLY FORBIDDEN.
 
-### IV. Technology Stack Compliance
-All development must adhere to the approved technology stack: Python for backend services, Next.js for frontend in later phases, FastAPI for API frameworks, SQLModel for database interactions, Neon DB for data storage, OpenAI Agents SDK and MCP for agent communication, and Docker, Kubernetes, Kafka, and Dapr for infrastructure in later phases.
+### Security-First Approach
+All requests require JWT issued by Better Auth. User identity must be extracted from JWT. All task operations must be filtered by authenticated user. Cross-user data access is strictly prohibited. No manual coding, no prompt-only task manipulation, no direct DB access from frontend.
 
-### V. Quality and Architecture Standards
-All code must follow clean architecture principles with stateless services where required, clear separation of concerns, and cloud-native readiness. Code must be maintainable, testable, and scalable according to established architectural patterns.
+### MCP Compatibility Across Providers
+System must work across OpenAI, Claude, and Mistral providers. MCP tools must be compatible with multiple AI providers without vendor lock-in. All natural language commands must correctly map to MCP tools that execute without provider validation errors.
 
-### VI. Specification Integrity
-Specifications are the authoritative source of truth for all development activities. Any changes to requirements must be reflected in updated specifications before implementation begins. Code implementation must strictly adhere to the approved specifications without deviation.
+### No Hallucinated Actions
+The AI agent MUST use MCP tools for every task operation. The agent MUST NOT fabricate task IDs, user IDs, or database state. The agent MUST confirm successful actions in natural language. The agent MUST gracefully handle: Task not found, Ambiguous user intent, Invalid task references, and request clarification if intent cannot be resolved.
 
-## Technology Constraints
+## MCP Tooling Standards
 
-The following technologies are approved for use in the Evolution of Todo project:
+- All MCP tool call IDs MUST be alphanumeric only (a-z, A-Z, 0-9)
+- All MCP tool call IDs MUST be ≤ 9 characters in length
+- All MCP tool call IDs MUST contain NO hyphens, underscores, or UUIDs
+- Tool IDs must be deterministic and human-readable
+- Example valid IDs: addtask01, listtask2, updatetsk, complet01, deletetsk
+- UUID-based or auto-generated tool call IDs are STRICTLY FORBIDDEN
 
-- Backend: Python with FastAPI framework
-- Database: SQLModel with Neon DB
-- Frontend: Next.js (introduced in later phases)
-- Infrastructure: Docker, Kubernetes, Kafka, Dapr (introduced in later phases)
-- Agent Framework: OpenAI Agents SDK with MCP
-- Testing: pytest for backend, appropriate frontend testing frameworks
-- Deployment: Containerized deployment with orchestration tools
+## Agent Behavior Rules
 
-All technology choices must align with these approved technologies unless explicitly updated through the specification process.
+- The AI agent MUST use MCP tools for every task operation
+- The agent MUST NOT fabricate task IDs, user IDs, or database state
+- The agent MUST confirm successful actions in natural language
+- The agent MUST gracefully handle:
+  - Task not found
+  - Ambiguous user intent
+  - Invalid task references
+- The agent MUST request clarification if intent cannot be resolved
+
+## Authentication & Security
+
+- All requests require JWT issued by Better Auth
+- User identity must be extracted from JWT
+- All task operations must be filtered by authenticated user
+- Cross-user data access is strictly prohibited
+- No direct DB access from frontend
+- No UUIDs in tool calls
 
 ## Development Workflow
 
-The development workflow must strictly follow these steps:
-
-1. Specification creation and approval
-2. Technical planning and architecture design
-3. Task breakdown with acceptance criteria
-4. Implementation following approved specifications
-5. Testing and quality assurance
-6. Review and approval process
-7. Integration and deployment
-
-No step may be skipped or performed out of sequence. Each phase must be completed and approved before proceeding to the next.
+- No manual coding (Claude Code only)
+- No prompt-only task manipulation
+- No hidden agent memory
+- No direct DB access from frontend
+- All persistence occurs via SQLModel + Neon PostgreSQL
+- All MCP tools must be stateless
+- Each request cycle follows: fetch → append → run → persist pattern
 
 ## Governance
 
-This constitution serves as the supreme governing document for all agents and processes in the Evolution of Todo project. All activities must comply with these principles and requirements.
+All implementations must adhere to MCP compatibility standards. Any deviation from the specified tool ID format (alphanumeric, ≤9 characters, no UUIDs) is prohibited. All changes must maintain cross-provider compatibility across OpenAI, Claude, and Mistral. Compliance with stateless architecture requirements must be verified during code reviews. The constitution supersedes all other development practices.
 
-Amendments to this constitution require formal approval through the specification process. Any changes to the constitution must be documented, reviewed, and approved before implementation.
-
-All agents working on this project must verify compliance with these principles during all development activities. Non-compliance must be reported and addressed immediately.
-
-**Version**: v1.0.0 | **Ratified**: 2025-01-01 | **Last Amended**: 2025-01-01
+**Version**: 1.1.0 | **Ratified**: 2026-01-29 | **Last Amended**: 2026-01-29

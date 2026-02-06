@@ -1,100 +1,204 @@
-# Evolution of Todo – Phase II
+# AI-Powered Todo Chatbot - Phase III Implementation
 
-This project represents Phase II of the Evolution of Todo application, transforming the original console-based Python application into a full-stack web application using Next.js, FastAPI, SQLModel, and Neon PostgreSQL.
+This project implements an AI-powered chatbot for managing todos through natural language using MCP (Model Context Protocol) server architecture and Claude Code with Spec-Kit Plus.
 
-## Architecture
-
-The application follows a clean architecture with:
-- **Frontend**: Next.js 14+ with App Router
-- **Backend**: FastAPI for REST API
-- **ORM**: SQLModel for unified data modeling
-- **Database**: PostgreSQL (compatible with Neon)
-
-## Features
-
-- Complete Todo CRUD operations
-- Persistent storage with PostgreSQL
-- Responsive web interface
-- RESTful API design
-- Type-safe frontend and backend
-
-## Project Structure
+## Architecture Overview
 
 ```
-├── backend/           # FastAPI backend application
-│   ├── app/          # Application code
-│   ├── requirements.txt
-│   └── README.md
-├── frontend/         # Next.js frontend application
-│   ├── src/          # Source code
-│   ├── package.json
-│   └── README.md
-└── .history/         # Project specifications and artifacts
-    ├── constitution.md
-    └── phase2/
-        ├── specs/
-        ├── tasks/
-        └── plans/
+┌─────────────────┐     ┌──────────────────────────────────────────────┐     ┌─────────────────┐
+│                 │     │              FastAPI Server                   │     │                 │
+│                 │     │  ┌────────────────────────────────────────┐  │     │    Neon DB      │
+│  ChatKit UI     │────▶│  │         Chat Endpoint                  │  │     │  (PostgreSQL)   │
+│  (Frontend)     │     │  │  POST /api/chat                        │  │     │                 │
+│                 │     │  └───────────────┬────────────────────────┘  │     │  - tasks        │
+│                 │     │                  │                           │     │  - conversations│
+│                 │     │                  ▼                           │     │  - messages     │
+│                 │     │  ┌────────────────────────────────────────┐  │────▶│                 │
+│                 │◀────│  │      OpenAI Agents SDK                 │  │     │                 │
+│                 │     │  │      (Agent + Runner)                  │  │     │                 │
+│                 │     │  └───────────────┬────────────────────────┘  │     │                 │
+│                 │     │                  │                           │     │                 │
+│                 │     │                  ▼                           │     │                 │
+│                 │     │  ┌────────────────────────────────────────┐  │────▶│                 │
+│                 │     │  │         MCP Server                 │  │     │                 │
+│                 │     │  │  (MCP Tools for Task Operations)       │  │◀────│                 │
+│                 │     │  └────────────────────────────────────────┘  │     │                 │
+└─────────────────┘     └──────────────────────────────────────────────┘     └─────────────────┘
 ```
 
-## Setup Instructions
+## Features Implemented
+
+### Backend (Python FastAPI)
+- **MCP Server**: Exposes task operations as tools for AI agents
+- **Stateless Chat Endpoint**: Persists conversation state to database
+- **Natural Language Processing**: Converts user intents to tool calls
+- **Database Models**: Tasks, Conversations, and Messages with proper relationships
+- **Authentication**: Better Auth integration for user management
+
+### MCP Tools Available
+1. **add_task**: Create a new task
+2. **list_tasks**: Retrieve tasks from the list
+3. **complete_task**: Mark a task as complete
+4. **delete_task**: Remove a task from the list
+5. **update_task**: Modify task title or description
+
+### Frontend (Next.js with ChatKit)
+- **Conversational Interface**: Natural language interaction with the todo system
+- **Real-time Chat**: Interactive chat interface for task management
+- **User Authentication**: Secure access to personal task lists
+
+## Database Schema
+
+### Task Model
+- `user_id`: Foreign key to user
+- `id`: Primary key
+- `title`: Task title
+- `description`: Task description
+- `completed`: Boolean indicating completion status
+- `created_at`: Timestamp of creation
+- `updated_at`: Timestamp of last update
+
+### Conversation Model
+- `user_id`: Foreign key to user
+- `id`: Primary key
+- `created_at`: Timestamp of creation
+- `updated_at`: Timestamp of last update
+
+### Message Model
+- `user_id`: Foreign key to user
+- `id`: Primary key
+- `conversation_id`: Foreign key to conversation
+- `role`: User or assistant role
+- `content`: Message content
+- `created_at`: Timestamp of creation
+
+## Natural Language Commands Supported
+
+| User Says | Agent Action |
+|-----------|--------------|
+| "Add a task to buy groceries" | Calls `add_task` with title "buy groceries" |
+| "Show me all my tasks" | Calls `list_tasks` with status "all" |
+| "What's pending?" | Calls `list_tasks` with status "pending" |
+| "Mark task 3 as complete" | Calls `complete_task` with task_id 3 |
+| "Delete the meeting task" | Calls `list_tasks` first, then `delete_task` |
+| "Change task 1 to 'Call mom tonight'" | Calls `update_task` with new title |
+| "I need to remember to pay bills" | Calls `add_task` with title "pay bills" |
+| "What have I completed?" | Calls `list_tasks` with status "completed" |
+
+## Installation and Setup
+
+### Prerequisites
+- Python 3.8+
+- Node.js 18+
+- PostgreSQL (or SQLite for development)
 
 ### Backend Setup
-
-1. Navigate to the backend directory:
 ```bash
 cd backend
-```
-
-2. Install dependencies:
-```bash
 pip install -r requirements.txt
-```
-
-3. Run the backend server:
-```bash
 python -m uvicorn app.main:app --reload
 ```
 
-The backend will be available at `http://localhost:8000`.
-
 ### Frontend Setup
-
-1. Navigate to the frontend directory:
 ```bash
 cd frontend
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Run the development server:
-```bash
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`.
+### MCP Server Setup
+```bash
+cd backend/mcp_server
+pip install mcp
+python main.py
+```
 
 ## API Endpoints
 
-The backend exposes the following API endpoints:
+### Chat API
+- `POST /api/chat/{user_id}` - Send message and get AI response
 
-- `GET /api/health` - Health check
-- `GET /api/todos` - Get all todos
-- `GET /api/todos/{id}` - Get specific todo
-- `POST /api/todos` - Create new todo
-- `PUT /api/todos/{id}` - Update todo
-- `PATCH /api/todos/{id}` - Partial update of todo
-- `DELETE /api/todos/{id}` - Delete todo
+#### Request Body
+```json
+{
+  "message": "User's natural language message",
+  "conversation_id": 123,
+  "token": "auth_token"
+}
+```
+
+#### Response
+```json
+{
+  "conversation_id": 123,
+  "response": "AI assistant's response",
+  "tool_calls": []
+}
+```
+
+### MCP Tools API
+- `POST /api/mcp-tools/add-task` - Add a new task
+- `POST /api/mcp-tools/list-tasks` - List tasks
+- `POST /api/mcp-tools/complete-task` - Complete a task
+- `POST /api/mcp-tools/delete-task` - Delete a task
+- `POST /api/mcp-tools/update-task` - Update a task
+
+## Conversation Flow (Stateless Request Cycle)
+
+1. Receive user message
+2. Fetch conversation history from database
+3. Build message array for agent (history + new message)
+4. Store user message in database
+5. Run agent with MCP tools
+6. Agent invokes appropriate MCP tool(s)
+7. Store assistant response in database
+8. Return response to client
+9. Server holds NO state (ready for next request)
+
+## Key Architecture Benefits
+
+- **MCP Tools**: Standardized interface for AI to interact with the app
+- **Single Endpoint**: Simplifies API - AI handles routing to tools
+- **Stateless Server**: Scalable, resilient, horizontally scalable
+- **Tool Composition**: Agent can chain multiple tools in one turn
 
 ## Development
 
-For development, both applications should be running simultaneously:
-- Backend on `http://localhost:8000`
-- Frontend on `http://localhost:3000`
+### Running Tests
+```bash
+python -m pytest tests/
+```
 
-The frontend expects the backend API to be available at `/api` relative to the frontend URL, which is configured in the `.env.local` file. 
-"# todo-app-phase-2" 
-"# todo-app-phase-2" 
+### Database Migrations
+```bash
+alembic revision --autogenerate -m "Description of changes"
+alembic upgrade head
+```
+
+## Deployment
+
+### Environment Variables
+Create a `.env` file with the following variables:
+
+```env
+DATABASE_URL=postgresql://user:password@localhost/dbname
+OPENAI_API_KEY=your_openai_api_key
+SECRET_KEY=your_secret_key
+```
+
+## Troubleshooting
+
+1. **MCP Server Not Responding**: Ensure the MCP server is running and accessible
+2. **Authentication Issues**: Verify JWT tokens are correctly formatted
+3. **Database Connection**: Check DATABASE_URL configuration
+4. **Frontend Not Connecting**: Verify CORS settings and API endpoints
+
+## Future Enhancements
+
+- Voice input/output capabilities
+- Advanced NLP for more complex task management
+- Integration with calendar applications
+- Email notifications for task deadlines
+- Multi-user collaboration features
+- Advanced analytics and insights 
+"# todo-app-phase-3" 

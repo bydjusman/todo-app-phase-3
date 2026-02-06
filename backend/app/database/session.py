@@ -9,6 +9,9 @@ load_dotenv()
 
 from ..models.todo import Todo
 from ..models.user import User
+from ..models.task import Task
+from ..models.conversation import Conversation
+from ..models.conversation_entry import ConversationEntry
 
 
 def _normalize_database_url(raw: str) -> str:

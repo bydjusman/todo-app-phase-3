@@ -18,7 +18,7 @@ def init_db():
         user = session.exec(statement).first()
 
         if not user:
-            from backend.app.models.user import UserCreate
+            from backend.app.schemas.user import UserCreate
             # Create default admin user
             user_create = UserCreate(
                 username="admin",

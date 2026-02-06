@@ -1,6 +1,7 @@
 from sqlmodel import Session
 from typing import Optional
-from ..models.user import User, UserCreate, UserUpdate
+from ..models.user import User
+from ..schemas.user import UserCreate, UserUpdate
 from .auth import get_password_hash, verify_password
 from fastapi import HTTPException, status
 
@@ -42,6 +43,7 @@ class UserService:
         db_user = User(
             username=user_create.username,
             email=user_create.email,
+            name=user_create.name,
             hashed_password=hashed_password
         )
         session.add(db_user)
