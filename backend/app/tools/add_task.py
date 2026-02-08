@@ -86,7 +86,6 @@ class AddTaskTool(BaseMCPTool):
         )
 
         session.add(task)
-        session.commit()
         session.refresh(task)
 
         # Prepare the response

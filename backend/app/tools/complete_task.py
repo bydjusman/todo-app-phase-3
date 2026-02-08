@@ -83,7 +83,6 @@ class CompleteTaskTool(BaseMCPTool):
 
         # Commit changes
         session.add(task)
-        session.commit()
         session.refresh(task)
 
         # Prepare the response

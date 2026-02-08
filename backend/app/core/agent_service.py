@@ -344,15 +344,15 @@ class TodoAgentService:
         """
         # Use Google AI agent to process the message and determine tool calls
         response_text, tool_calls = google_ai_agent_service.process_message(message, user_id, conversation_history)
-        
+
         # Execute any required tool calls using the database session from self
         for tool_call in tool_calls:
             function_name = tool_call["name"]
             function_args = tool_call["arguments"]
-            
+
             # Execute the tool call using the agent's session
             result = google_ai_agent_service.execute_tool_call_with_session(function_name, function_args, self.db_session)
-        
+
         return response_text, tool_calls
 
     async def _handle_add_task_intent_with_tools(self, user_id: int, message: str) -> str:

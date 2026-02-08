@@ -92,6 +92,9 @@ async def chat_endpoint(user_id: int, request: ChatRequest):
                 conversation_history=conversation_history
             )
 
+            # Flush the session to ensure all changes from tools are persisted
+            session.flush()
+
             # Store assistant response in database
             assistant_response = ConversationEntry(
                 conversation_id=conversation.id,

@@ -43,11 +43,32 @@ class TaskService:
         Retrieve tasks for a specific user with optional filtering
         """
         statement = select(Task).where(Task.user_id == user_id)
-        
+
         if status:
             statement = statement.where(Task.status == status)
-        
+
         statement = statement.offset(offset).limit(limit)
+        tasks = db_session.exec(statement).all()
+        return tasks
+
+    @staticmethod
+    def get_user_tasks(db_session: Session, user_id: int) -> List[Task]:
+        """
+        Retrieve all tasks for a specific user
+        """
+        statement = select(Task).where(Task.user_id == user_id)
+        tasks = db_session.exec(statement).all()
+        return tasks
+
+    @staticmethod
+    def get_user_tasks_by_status(db_session: Session, user_id: int, status: TaskStatus) -> List[Task]:
+        """
+        Get tasks for a user filtered by status
+        """
+        statement = select(Task).where(
+            Task.user_id == user_id,
+            Task.status == status
+        )
         tasks = db_session.exec(statement).all()
         return tasks
 

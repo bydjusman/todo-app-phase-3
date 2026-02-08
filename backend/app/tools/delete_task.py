@@ -71,7 +71,6 @@ class DeleteTaskTool(BaseMCPTool):
 
         # Delete the task
         session.delete(task)
-        session.commit()
 
         # Prepare the response
         response = {
