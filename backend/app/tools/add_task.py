@@ -6,7 +6,6 @@ from ..models.user import User
 from ..models.task import Task, TaskStatus
 from .base import BaseMCPTool
 from ..database.session import get_session
-from sqlmodel import Session
 
 
 class AddTaskTool(BaseMCPTool):

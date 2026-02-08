@@ -31,7 +31,9 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 async def chat_endpoint(user_id: int, request: ChatRequest):
     """Handle a single step in the conversation with MCP tools - follows the required API specification"""
     try:
-        with get_session() as session:
+        session_gen = get_session()
+        session = next(session_gen)
+        try:
             # Validate user exists
             user = get_current_user_from_token(request.token, session) if request.token else None
             if not user or user.id != user_id:
@@ -106,6 +108,8 @@ async def chat_endpoint(user_id: int, request: ChatRequest):
                 response=response_text,
                 tool_calls=tool_calls
             )
+        finally:
+            session.close()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -115,7 +119,9 @@ async def chat_endpoint(user_id: int, request: ChatRequest):
 async def simple_chat_endpoint(request: ChatRequest, user_id: int = None):
     """Simple chat endpoint for frontend compatibility - expects user_id in request body or token"""
     try:
-        with get_session() as session:
+        session_gen = get_session()
+        session = next(session_gen)
+        try:
             # Try to get user from token if provided
             user = get_current_user_from_token(request.token, session) if request.token else None
 
@@ -195,5 +201,7 @@ async def simple_chat_endpoint(request: ChatRequest, user_id: int = None):
                 response=response_text,
                 tool_calls=tool_calls
             )
+        finally:
+            session.close()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from ..models.todo import Todo
-from ..models.user import User
 from ..models.task import Task
+from ..models.user import User
 from ..models.conversation import Conversation
 from ..models.conversation_entry import ConversationEntry
 
@@ -74,7 +73,13 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
 
-def get_session() -> Generator[Session, None, None]:
+def get_db() -> Generator[Session, None, None]:
     """Get database session"""
+    with Session(engine) as session:
+        yield session
+
+
+def get_session() -> Generator[Session, None, None]:
+    """Get database session (alias for get_db)"""
     with Session(engine) as session:
         yield session

@@ -2,8 +2,7 @@
 from typing import List, Optional, Dict, Any
 from sqlmodel import Session
 from pydantic import BaseModel
-from ..models.todo import Todo, TodoCreate, TodoUpdate
-from ..core.todo_service import TodoService
+from ..models.task import Task, TaskBase
 from ..database.session import get_session
 from ..core.auth import get_current_user_from_token
 from fastapi.security import OAuth2PasswordBearer
@@ -15,7 +14,7 @@ from datetime import datetime
 class AddTaskInput(BaseModel):
     title: str
     description: Optional[str] = None
-    completed: Optional[bool] = False
+    status: Optional[str] = "pending"  # Use "pending" or "completed"
     due_date: Optional[str] = None
     token: str
 
@@ -30,7 +29,7 @@ class ListTasksInput(BaseModel):
     token: str
     offset: Optional[int] = 0
     limit: Optional[int] = 50
-    completed: Optional[bool] = None
+    status: Optional[str] = None  # "pending", "completed", or None for all
 
 
 class ListTasksOutput(BaseModel):
@@ -43,7 +42,7 @@ class UpdateTaskInput(BaseModel):
     task_id: int
     title: Optional[str] = None
     description: Optional[str] = None
-    completed: Optional[bool] = None
+    status: Optional[str] = None  # "pending" or "completed"
     due_date: Optional[str] = None
     token: str
 
@@ -95,21 +94,22 @@ class MCPTools:
             try:
                 user = MCPTools._get_user_from_token(input_data.token, session)
 
-                # Prepare todo data
-                todo_data = TodoCreate(
-                    title=input_data.title,
-                    description=input_data.description,
-                    completed=input_data.completed,
-                    due_date=input_data.due_date
-                )
+                # Prepare task data
+                from ..core.task_service import TaskService
+                task_data = {
+                    'title': input_data.title,
+                    'description': input_data.description,
+                    'status': input_data.status,
+                    'due_date': input_data.due_date
+                }
 
-                # Create todo using service
-                todo = TodoService.create_todo(session, todo_data, user.id)
+                # Create task using service
+                task = TaskService.create_task(session, user.id, task_data)
 
                 return AddTaskOutput(
                     success=True,
-                    task_id=todo.id,
-                    message=f"Task '{todo.title}' added successfully with ID {todo.id}"
+                    task_id=task.id,
+                    message=f"Task '{task.title}' added successfully with ID {task.id}"
                 )
             except Exception as e:
                 return AddTaskOutput(
@@ -129,26 +129,27 @@ class MCPTools:
             try:
                 user = MCPTools._get_user_from_token(input_data.token, session)
 
-                # Get todos using service
-                todos = TodoService.get_all_todos(
+                # Get tasks using service
+                from ..core.task_service import TaskService
+                tasks_list = TaskService.get_tasks(
                     session,
                     user.id,
                     offset=input_data.offset,
                     limit=input_data.limit,
-                    completed=input_data.completed
+                    status=input_data.status
                 )
 
                 # Convert to dict format for output
                 tasks = []
-                for todo in todos:
+                for task in tasks_list:
                     task_dict = {
-                        "id": todo.id,
-                        "title": todo.title,
-                        "description": todo.description,
-                        "completed": todo.completed,
-                        "due_date": todo.due_date.isoformat() if todo.due_date else None,
-                        "created_at": todo.created_at.isoformat() if todo.created_at else None,
-                        "updated_at": todo.updated_at.isoformat() if todo.updated_at else None
+                        "id": task.id,
+                        "title": task.title,
+                        "description": task.description,
+                        "status": task.status,
+                        "due_date": task.due_date.isoformat() if task.due_date else None,
+                        "created_at": task.created_at.isoformat() if task.created_at else None,
+                        "updated_at": task.updated_at.isoformat() if task.updated_at else None
                     }
                     tasks.append(task_dict)
 
@@ -177,17 +178,21 @@ class MCPTools:
                 user = MCPTools._get_user_from_token(input_data.token, session)
 
                 # Prepare update data
-                todo_data = TodoUpdate(
-                    title=input_data.title,
-                    description=input_data.description,
-                    completed=input_data.completed,
-                    due_date=input_data.due_date
-                )
+                update_data = {}
+                if input_data.title is not None:
+                    update_data['title'] = input_data.title
+                if input_data.description is not None:
+                    update_data['description'] = input_data.description
+                if input_data.status is not None:
+                    update_data['status'] = input_data.status
+                if input_data.due_date is not None:
+                    update_data['due_date'] = input_data.due_date
 
-                # Update todo using service
-                todo = TodoService.update_todo(session, input_data.task_id, user.id, todo_data)
+                # Update task using service
+                from ..core.task_service import TaskService
+                task = TaskService.update_task(session, input_data.task_id, user.id, update_data)
 
-                if todo:
+                if task:
                     return UpdateTaskOutput(
                         success=True,
                         message=f"Task {input_data.task_id} updated successfully"
@@ -214,13 +219,11 @@ class MCPTools:
             try:
                 user = MCPTools._get_user_from_token(input_data.token, session)
 
-                # Prepare update data to mark as completed
-                todo_data = TodoUpdate(completed=True)
+                # Update task status to completed using service
+                from ..core.task_service import TaskService
+                task = TaskService.update_task(session, input_data.task_id, user.id, {'status': 'completed'})
 
-                # Update todo using service
-                todo = TodoService.update_todo(session, input_data.task_id, user.id, todo_data)
-
-                if todo:
+                if task:
                     return CompleteTaskOutput(
                         success=True,
                         message=f"Task {input_data.task_id} marked as completed"
@@ -247,8 +250,9 @@ class MCPTools:
             try:
                 user = MCPTools._get_user_from_token(input_data.token, session)
 
-                # Delete todo using service
-                success = TodoService.delete_todo(session, input_data.task_id, user.id)
+                # Delete task using service
+                from ..core.task_service import TaskService
+                success = TaskService.delete_task(session, input_data.task_id, user.id)
 
                 if success:
                     return DeleteTaskOutput(

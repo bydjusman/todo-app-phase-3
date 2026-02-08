@@ -25,5 +25,5 @@ class User(UserBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # Relationship to todos - using string reference to avoid circular import
-    todos: list["Todo"] = Relationship(back_populates="user", sa_relationship_kwargs={"lazy": "select"})
+    # Relationship to tasks - using string reference to avoid circular import
+    tasks: list["Task"] = Relationship(back_populates="user", sa_relationship_kwargs={"lazy": "select"})

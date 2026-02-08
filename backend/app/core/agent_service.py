@@ -6,6 +6,7 @@ import re
 from ..tools.add_task import AddTaskTool
 from ..tools.list_tasks import ListTasksTool
 from ..models.conversation_entry import ConversationEntry
+from .google_ai_agent import google_ai_agent_service
 
 
 class TodoAgentService:
@@ -341,51 +342,18 @@ class TodoAgentService:
         Process a user message with full tool integration and return both response and tool calls.
         This method implements the stateless request cycle as specified in Phase 3.
         """
-        # Simple natural language processing to determine intent
-        message_lower = message.lower().strip()
-
-        # Track tool calls made during processing
-        tool_calls = []
-
-        # Intent detection logic with tool invocation
-        if any(word in message_lower for word in ["add", "create", "new task", "make"]):
-            result = await self._handle_add_task_intent_with_tools(user_id, message)
-            tool_calls.append({"name": "add_task", "arguments": {"message": message}})
-            return result, tool_calls
-        elif any(word in message_lower for word in ["list", "show", "view", "pending", "completed", "all"]):
-            result = await self._handle_list_tasks_intent_with_tools(user_id, message)
-            status_filter = "all"
-            if "pending" in message_lower:
-                status_filter = "pending"
-            elif "completed" in message_lower:
-                status_filter = "completed"
-            tool_calls.append({"name": "list_tasks", "arguments": {"status": status_filter}})
-            return result, tool_calls
-        elif any(word in message_lower for word in ["update", "change", "edit", "modify"]):
-            result = await self._handle_update_task_intent_with_tools(user_id, message)
-            tool_calls.append({"name": "update_task", "arguments": {"message": message}})
-            return result, tool_calls
-        elif any(word in message_lower for word in ["complete", "finish", "done", "mark as"]):
-            result = await self._handle_complete_task_intent_with_tools(user_id, message)
-            tool_calls.append({"name": "complete_task", "arguments": {"message": message}})
-            return result, tool_calls
-        elif any(word in message_lower for word in ["delete", "remove", "erase", "cancel"]):
-            result = await self._handle_delete_task_intent_with_tools(user_id, message)
-            tool_calls.append({"name": "delete_task", "arguments": {"message": message}})
-            return result, tool_calls
-        elif any(word in message_lower for word in ["what have", "which have", "tell me about", "show completed"]):
-            # Handle ambiguous requests for completed tasks
-            if any(word in message_lower for word in ["completed", "done", "finished"]):
-                result = await self._handle_list_tasks_intent_with_tools(user_id, "list completed tasks")
-                tool_calls.append({"name": "list_tasks", "arguments": {"status": "completed"}})
-                return result, tool_calls
-            else:
-                result = await self._handle_ambiguous_request_with_tools(user_id, message)
-                return result, tool_calls
-        else:
-            # Default response for unrecognized commands
-            result = f"I understand you said: '{message}'. For task management, you can ask me to add tasks, list tasks, update tasks, mark tasks as complete, or delete tasks."
-            return result, tool_calls
+        # Use Google AI agent to process the message and determine tool calls
+        response_text, tool_calls = google_ai_agent_service.process_message(message, user_id, conversation_history)
+        
+        # Execute any required tool calls using the database session from self
+        for tool_call in tool_calls:
+            function_name = tool_call["name"]
+            function_args = tool_call["arguments"]
+            
+            # Execute the tool call using the agent's session
+            result = google_ai_agent_service.execute_tool_call_with_session(function_name, function_args, self.db_session)
+        
+        return response_text, tool_calls
 
     async def _handle_add_task_intent_with_tools(self, user_id: int, message: str) -> str:
         """

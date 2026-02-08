@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 from datetime import datetime
 from typing import Optional
 from enum import Enum
@@ -22,3 +22,6 @@ class Task(TaskBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = Field(default=None)
+    
+    # Relationship to user - using string reference to avoid circular import
+    user: Optional["User"] = Relationship(back_populates="tasks", sa_relationship_kwargs={"lazy": "select"})

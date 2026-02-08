@@ -1,98 +1,112 @@
-from fastapi import APIRouter, HTTPException, Depends, status
-from typing import List, Optional
-from sqlmodel import Session
-from fastapi.security import OAuth2PasswordBearer
-from ..database.session import get_session
-from ..models.todo import Todo, TodoCreate, TodoUpdate, TodoPublic
-from ..core.todo_service import TodoService
-from ..core.utils import todo_to_public
-from ..core.auth import get_current_user_from_token
+from fastapi import APIRouter, Depends, HTTPException
+from typing import List
+from sqlalchemy.orm import Session
+import sys
+import os
+from enum import Enum
 
-router = APIRouter(prefix="/todos", tags=["todos"])
+# Add the app directory to the path to import models and crud
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+from ..models.task import Task, TaskStatus
+from ..core.task_service import TaskService
+from ..database.session import get_db
+from ..core.auth import get_current_user
+from ..models.user import User
 
+router = APIRouter()
 
-def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)):
-    """Dependency to get the current authenticated user."""
-    user = get_current_user_from_token(token, session)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return user
+class TaskStatusQuery(str, Enum):
+    all = "all"
+    pending = "pending"
+    completed = "completed"
 
-
-@router.get("/", response_model=List[TodoPublic])
+@router.get("/todos", response_model=List[Task])
 async def get_todos(
-    offset: int = 0,
-    limit: int = 50,
-    completed: Optional[bool] = None,
-    current_user = Depends(get_current_user),
-    session: Session = Depends(get_session)
+    status: TaskStatusQuery = "all",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    """Get all todos for the current user with optional filtering and pagination"""
-    if limit > 100:
-        limit = 100  # Enforce maximum limit
+    """
+    Retrieve all tasks for the current user, optionally filtered by status
+    """
+    task_service = TaskService(db)
 
-    todos = TodoService.get_all_todos(session, current_user.id, offset=offset, limit=limit, completed=completed)
-
-    # Convert to public model to ensure consistent response format
-    return [todo_to_public(todo) for todo in todos]
-
-
-@router.get("/{todo_id}", response_model=TodoPublic)
-async def get_todo(todo_id: int, current_user = Depends(get_current_user), session: Session = Depends(get_session)):
-    """Get a specific todo by ID for the current user"""
-    todo = TodoService.get_todo_by_id(session, todo_id, current_user.id)
-    if not todo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Todo not found"
-        )
-    return todo_to_public(todo)
+    if status == "all":
+        return task_service.get_user_tasks(current_user.id)
+    elif status == "pending":
+        return task_service.get_user_tasks_by_status(current_user.id, TaskStatus.PENDING)
+    elif status == "completed":
+        return task_service.get_user_tasks_by_status(current_user.id, TaskStatus.COMPLETED)
+    else:
+        return task_service.get_user_tasks(current_user.id)
 
 
-@router.post("/", response_model=TodoPublic, status_code=status.HTTP_201_CREATED)
-async def create_todo(todo_data: TodoCreate, current_user = Depends(get_current_user), session: Session = Depends(get_session)):
-    """Create a new todo for the current user"""
-    todo = TodoService.create_todo(session, todo_data, current_user.id)
-    return todo_to_public(todo)
+@router.post("/todos", response_model=Task)
+async def create_todo(
+    todo_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new task for the current user
+    """
+    task_service = TaskService(db)
+    return task_service.create_task(
+        title=todo_data.get('title', ''),
+        description=todo_data.get('description', ''),
+        user_id=current_user.id
+    )
 
 
-@router.put("/{todo_id}", response_model=TodoPublic)
-async def update_todo(todo_id: int, todo_data: TodoUpdate, current_user = Depends(get_current_user), session: Session = Depends(get_session)):
-    """Update all fields of a specific todo for the current user"""
-    todo = TodoService.update_todo(session, todo_id, current_user.id, todo_data)
-    if not todo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Todo not found"
-        )
-    return todo_to_public(todo)
+@router.put("/todos/{todo_id}", response_model=Task)
+async def update_todo(
+    todo_id: int,
+    todo_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update a specific task
+    """
+    task_service = TaskService(db)
+
+    # Verify the task belongs to the current user
+    existing_task = task_service.get_task_by_id(todo_id)
+    if not existing_task or existing_task.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Map completed field to status if provided
+    status = None
+    if 'completed' in todo_data and todo_data['completed'] is not None:
+        if todo_data['completed']:
+            status = TaskStatus.COMPLETED
+        else:
+            status = TaskStatus.PENDING
+
+    return task_service.update_task(
+        task_id=todo_id,
+        title=todo_data.get('title'),
+        description=todo_data.get('description'),
+        status=status
+    )
 
 
-@router.patch("/{todo_id}", response_model=TodoPublic)
-async def partial_update_todo(todo_id: int, todo_data: TodoUpdate, current_user = Depends(get_current_user), session: Session = Depends(get_session)):
-    """Update specific fields of a todo for the current user"""
-    todo = TodoService.update_todo(session, todo_id, current_user.id, todo_data)
-    if not todo:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Todo not found"
-        )
-    return todo_to_public(todo)
+@router.delete("/todos/{todo_id}")
+async def delete_todo(
+    todo_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a specific task
+    """
+    task_service = TaskService(db)
 
+    # Verify the task belongs to the current user
+    existing_task = task_service.get_task_by_id(todo_id)
+    if not existing_task or existing_task.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Task not found")
 
-@router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(todo_id: int, current_user = Depends(get_current_user), session: Session = Depends(get_session)):
-    """Delete a specific todo for the current user"""
-    success = TodoService.delete_todo(session, todo_id, current_user.id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Todo not found"
-        )
-    return
+    task_service.delete_task(todo_id)
+    return {"message": "Task deleted successfully"}

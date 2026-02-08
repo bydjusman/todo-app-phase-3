@@ -1,15 +1,32 @@
 from fastapi import APIRouter
-from datetime import datetime
-from typing import Dict
+from fastapi.responses import JSONResponse
 
-router = APIRouter(prefix="/health", tags=["health"])
+router = APIRouter()
 
-
-@router.get("/", response_model=Dict)
+@router.get("/health")
 async def health_check():
-    """Health check endpoint to verify API service availability"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "version": "1.0.0"
-    }
+    """
+    Health check endpoint to verify API is running
+    """
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "healthy",
+            "message": "API is running successfully",
+            "service": "todo-chatbot-api"
+        }
+    )
+
+@router.get("/ready")
+async def readiness_check():
+    """
+    Readiness check endpoint
+    """
+    # Add any additional checks here if needed
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "ready",
+            "message": "Service is ready to accept requests"
+        }
+    )
