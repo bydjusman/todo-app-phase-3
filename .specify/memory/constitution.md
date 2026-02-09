@@ -1,75 +1,95 @@
 <!--
 Sync Impact Report:
-- Version change: 1.0.0 → 1.1.0
-- Modified principles: Added AI-native design, MCP compliance, Stateless architecture principles
-- Added sections: MCP Tooling Standards, Agent Behavior Rules, Authentication & Security
-- Removed sections: None
+- Version change: 1.1.0 → 2.0.0
+- Modified principles: Complete overhaul from AI-Powered Todo Chatbot to Cloud-Native Kubernetes Deployment
+- Added sections: Cloud-Native Architecture, Kubernetes Deployment Standards, AI-Assisted DevOps, Containerization Requirements
+- Removed sections: MCP Tooling Standards, Agent Behavior Rules from previous version
 - Templates requiring updates: ✅ plan-template.md, ✅ spec-template.md, ✅ tasks-template.md
 - Follow-up TODOs: None
 -->
-# Phase III – AI-Powered Todo Chatbot Constitution
+# Phase IV – Local Kubernetes Deployment of Todo Chatbot Constitution
 
 ## Core Principles
 
-### AI-Native Design
-AI-native design emphasizing agent → tool → database architecture. The system must be designed from the ground up to leverage AI agents that interact with deterministic tools for all operations. No manual coding outside of Claude Code, with strict adherence to agentic AI patterns.
+### Accuracy
+All infrastructure and deployment steps must be reproducible locally. Every command, configuration, and deployment manifest must produce identical results across different developer machines. All Docker builds, Kubernetes deployments, and service configurations must be deterministic and verifiable.
 
-### Strict Stateless Architecture
-Backend holds NO in-memory state. Each request cycle must: 1) Fetch conversation history from database, 2) Append new user message, 3) Run agent with MCP tools, 4) Persist assistant response. All MCP tools themselves MUST be stateless with no hidden agent memory.
+### Clarity
+Instructions must be explicit for developers with basic Kubernetes knowledge. All documentation, commands, and configuration files must be comprehensible to team members with fundamental understanding of containerization and orchestration concepts. No assumptions about advanced Kubernetes expertise should be made.
 
-### Deterministic Tool Invocation
-All MCP tool call IDs MUST be alphanumeric only (a-z, A-Z, 0-9), be ≤ 9 characters in length, and contain NO hyphens, underscores, or UUIDs. Tool IDs must be deterministic and human-readable (e.g., addtask01, listtask2, updatetsk, complet01, deletetsk). UUID-based or auto-generated tool call IDs are STRICTLY FORBIDDEN.
+### Spec-Driven Development
+Use Claude Code to generate all Docker, Helm, and Kubernetes resources automatically. All infrastructure-as-code artifacts must be generated through AI assistance following the Spec-Driven methodology. Manual coding is prohibited except for specification and validation scripts.
 
-### Security-First Approach
-All requests require JWT issued by Better Auth. User identity must be extracted from JWT. All task operations must be filtered by authenticated user. Cross-user data access is strictly prohibited. No manual coding, no prompt-only task manipulation, no direct DB access from frontend.
+### AI-Assisted DevOps
+Leverage Gordon (Docker AI) for containerization tasks and kubectl-ai / Kagent for Kubernetes orchestration. All Dockerfile creation, image building, and Kubernetes resource generation must be performed with AI assistance. Human intervention should be limited to validation and approval.
 
-### MCP Compatibility Across Providers
-System must work across OpenAI, Claude, and Mistral providers. MCP tools must be compatible with multiple AI providers without vendor lock-in. All natural language commands must correctly map to MCP tools that execute without provider validation errors.
+### Safety
+Ensure environment variables, secrets, and ports are correctly managed for local deployment. All security best practices must be followed, including proper secret management, secure port exposure, and appropriate network policies. No hardcoded credentials or insecure configurations are permitted.
 
-### No Hallucinated Actions
-The AI agent MUST use MCP tools for every task operation. The agent MUST NOT fabricate task IDs, user IDs, or database state. The agent MUST confirm successful actions in natural language. The agent MUST gracefully handle: Task not found, Ambiguous user intent, Invalid task references, and request clarification if intent cannot be resolved.
+### Cloud-Native Architecture
+Design and deploy using cloud-native principles with containerized microservices. Applications must be designed to run effectively in containerized environments with stateless components where possible. Services should be independently deployable and scalable.
 
-## MCP Tooling Standards
+## Kubernetes Deployment Standards
 
-- All MCP tool call IDs MUST be alphanumeric only (a-z, A-Z, 0-9)
-- All MCP tool call IDs MUST be ≤ 9 characters in length
-- All MCP tool call IDs MUST contain NO hyphens, underscores, or UUIDs
-- Tool IDs must be deterministic and human-readable
-- Example valid IDs: addtask01, listtask2, updatetsk, complet01, deletetsk
-- UUID-based or auto-generated tool call IDs are STRICTLY FORBIDDEN
+- Deployments must be reproducible on any local machine with Docker Desktop 4.53+ and Kubernetes enabled
+- Use Minikube for local Kubernetes cluster setup and validation
+- Implement proper service discovery between frontend and backend components
+- Configure appropriate resource limits and requests for containers
+- Implement health checks (liveness and readiness probes) for all services
+- Use ConfigMaps for configuration parameters and Secrets for sensitive data
+- Ensure proper namespace organization for application components
 
-## Agent Behavior Rules
+## Containerization Requirements
 
-- The AI agent MUST use MCP tools for every task operation
-- The agent MUST NOT fabricate task IDs, user IDs, or database state
-- The agent MUST confirm successful actions in natural language
-- The agent MUST gracefully handle:
-  - Task not found
-  - Ambiguous user intent
-  - Invalid task references
-- The agent MUST request clarification if intent cannot be resolved
+- Create Docker container images for both frontend and backend applications
+- Optimize Dockerfiles for minimal attack surface and reduced image size
+- Use multi-stage builds where appropriate to minimize production image footprint
+- Implement proper .dockerignore files to exclude unnecessary files
+- Tag images appropriately for version tracking and deployment
 
-## Authentication & Security
+## Helm Chart Standards
 
-- All requests require JWT issued by Better Auth
-- User identity must be extracted from JWT
-- All task operations must be filtered by authenticated user
-- Cross-user data access is strictly prohibited
-- No direct DB access from frontend
-- No UUIDs in tool calls
+- Package Kubernetes manifests into Helm charts for easier deployment management
+- Use parameterized Helm charts that allow customization of deployment properties
+- Implement proper upgrade/rollback strategies in Helm charts
+- Include appropriate default values and documentation for chart parameters
+- Structure charts to support both development and production configurations
+
+## AI-Assisted DevOps Practices
+
+- All Dockerfile creation must be generated through AI assistance (Gordon)
+- Kubernetes manifests must be created with AI assistance (kubectl-ai / Kagent)
+- Helm charts must be generated using AI tools with proper templating
+- Infrastructure changes must follow the Spec-Driven workflow
+- All automation scripts must be AI-generated and human-reviewed
+
+## Scalability Requirements
+
+- Support scaling of frontend/backend replicas as needed
+- Implement horizontal pod autoscaling where appropriate
+- Design services to handle load balancing effectively
+- Ensure stateless design to enable seamless scaling
+- Validate performance under scaled conditions
+
+## Validation and Testing
+
+- Deployment validation: Local Minikube pods running successfully
+- Frontend accessibility at port 3000
+- Backend accessibility at port 8080
+- Service-to-service communication functioning properly
+- Proper ingress configuration if required
+- Successful scaling of replica sets
 
 ## Development Workflow
 
-- No manual coding (Claude Code only)
-- No prompt-only task manipulation
-- No hidden agent memory
-- No direct DB access from frontend
-- All persistence occurs via SQLModel + Neon PostgreSQL
-- All MCP tools must be stateless
-- Each request cycle follows: fetch → append → run → persist pattern
+- No manual coding; all commands and manifests must be generated through Claude Code or AI DevOps agents
+- All Docker, Helm, and Kubernetes resources generated via AI assistance
+- Spec-driven approach for all infrastructure changes
+- Reproducible deployments on local machines with Docker Desktop 4.53+ and Kubernetes enabled
+- Comprehensive documentation of the Spec-Driven workflow used
 
 ## Governance
 
-All implementations must adhere to MCP compatibility standards. Any deviation from the specified tool ID format (alphanumeric, ≤9 characters, no UUIDs) is prohibited. All changes must maintain cross-provider compatibility across OpenAI, Claude, and Mistral. Compliance with stateless architecture requirements must be verified during code reviews. The constitution supersedes all other development practices.
+All implementations must adhere to cloud-native and Kubernetes best practices. Any deviation from the specified containerization and deployment standards is prohibited. All changes must maintain local reproducibility across different developer environments. Compliance with security requirements must be verified during deployment validation. The constitution supersedes all other deployment practices.
 
-**Version**: 1.1.0 | **Ratified**: 2026-01-29 | **Last Amended**: 2026-01-29
+**Version**: 2.0.0 | **Ratified**: 2026-02-09 | **Last Amended**: 2026-02-09
