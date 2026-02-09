@@ -1,11 +1,15 @@
 import os
 from dotenv import load_dotenv
-import google.generativeai as genai
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Initialize Google AI
+# NOTE: Using the deprecated google-generativeai package as the new google-genai package
+# has a completely different API that would require extensive code changes
+import google.generativeai as genai
+
+# Initialize the API with your key
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=GOOGLE_API_KEY)
 

@@ -27,20 +27,22 @@ class ChatResponse(BaseModel):
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-@router.post("/{user_id}", response_model=ChatResponse)
-async def chat_endpoint(user_id: int, request: ChatRequest):
+@router.post("/", response_model=ChatResponse)
+async def chat_endpoint(request: ChatRequest):
     """Handle a single step in the conversation with MCP tools - follows the required API specification"""
     try:
         session_gen = get_session()
         session = next(session_gen)
         try:
-            # Validate user exists
+            # Validate user from token
             user = get_current_user_from_token(request.token, session) if request.token else None
-            if not user or user.id != user_id:
+            if not user:
                 raise HTTPException(
                     status_code=401,
-                    detail="Invalid or expired token or user mismatch"
+                    detail="Invalid or expired token"
                 )
+            
+            user_id = user.id
 
             # Get or create conversation
             if request.conversation_id:
@@ -117,38 +119,33 @@ async def chat_endpoint(user_id: int, request: ChatRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# Simple chat endpoint for frontend compatibility
-@router.post("/", response_model=ChatResponse)
-async def simple_chat_endpoint(request: ChatRequest, user_id: int = None):
-    """Simple chat endpoint for frontend compatibility - expects user_id in request body or token"""
+# Keep the old endpoint for backward compatibility if needed
+@router.post("/{user_id}", response_model=ChatResponse)
+async def chat_endpoint_legacy(user_id: int, request: ChatRequest):
+    """Legacy chat endpoint that accepts user_id in path - for backward compatibility"""
     try:
         session_gen = get_session()
         session = next(session_gen)
         try:
-            # Try to get user from token if provided
+            # Validate user from token and ensure it matches the path user_id
             user = get_current_user_from_token(request.token, session) if request.token else None
-
-            # If user_id is provided in the function parameter, use that
-            # Otherwise, if user exists from token, use their ID
-            effective_user_id = user_id if user_id is not None else (user.id if user else None)
-
-            if effective_user_id is None:
+            if not user or user.id != user_id:
                 raise HTTPException(
                     status_code=401,
-                    detail="User identification required"
+                    detail="Invalid or expired token or user mismatch"
                 )
 
             # Get or create conversation
             if request.conversation_id:
                 conversation = session.get(Conversation, request.conversation_id)
-                if not conversation or conversation.user_id != effective_user_id:
+                if not conversation or conversation.user_id != user_id:
                     raise HTTPException(
                         status_code=404,
                         detail="Conversation not found or doesn't belong to user"
                     )
             else:
                 # Create new conversation
-                conversation = Conversation(user_id=effective_user_id, title=f"Chat {datetime.now().isoformat()}")
+                conversation = Conversation(user_id=user_id, title=f"Chat {datetime.now().isoformat()}")
                 session.add(conversation)
                 session.commit()
                 session.refresh(conversation)
@@ -182,11 +179,14 @@ async def simple_chat_endpoint(request: ChatRequest, user_id: int = None):
             # Process the conversation with agent
             agent_service = TodoAgentService(session)
             response_text, tool_calls = await agent_service.process_message_with_tools(
-                user_id=effective_user_id,
+                user_id=user_id,
                 message=request.message,
                 conversation_id=conversation.id,
                 conversation_history=conversation_history
             )
+
+            # Flush the session to ensure all changes from tools are persisted
+            session.flush()
 
             # Store assistant response in database
             assistant_response = ConversationEntry(
